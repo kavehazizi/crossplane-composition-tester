@@ -36,8 +36,7 @@ def assert_resource_has_key_and_return_value(resource_name, resource, key: str):
                 f"expected resource {resource_name} to have key {key}")
     return result
 
-
-def assert_has_resource_entry(resource_name, resource, key: str, value: str = None):
+def assert_resource_has_entry(resource_name, resource, key: str, expected: str = ""):
     """Check that a resource has an entry
 
     Arguments:
@@ -46,17 +45,22 @@ def assert_has_resource_entry(resource_name, resource, key: str, value: str = No
         key {str} -- key
 
     Keyword Arguments:
-        value {str} -- value (default: {None})
+        expected {str} -- expected value (default: "")
 
     Raises:
         AssertionError: resource does not have the entry
     """
-    result = str(assert_resource_has_key_and_return_value(
+    value = str(assert_resource_has_key_and_return_value(
         resource_name, resource, key))
-    if value:
-        assert_that(result, equal_to(
-            value), f"expected resource {resource_name} to have {key} with value {value}, but found value {result} instead")
-
+    # For now, 'expected' is always read from feature file test as a string
+    # and 'value' is always read from the yaml (render outupt) as a string
+    # So, we can compare them as strings
+    # If in the future, we preserve the type of values read from yaml, 
+    # uncomment the following line to convert expected to the type of value
+    # expected = parse_value_cmd(expected)
+    
+    if expected is not None:
+        assert_that(value, equal_to(expected), f"expected resource {resource_name} to have key {key} with value {expected}, but found value {value} instead")
 
 def assert_has_not_resource_entry(resource_name, resource, key: str):
     """Check that a resource does not have an entry
@@ -90,7 +94,7 @@ def assert_resource_array_param_has_length(resource_name, resource, key: str, le
         resource_name, resource, key)
 
     assert_that(result, has_length(
-        length), f"expected resource {resource_name} to have {key} with length {length}, but has length {len(result)} instead")
+        length), f"expected resource {resource_name} to have key {key} with length {length}, but has length {len(result)} instead")
 
 
 def check_resources(desired_resources, resource_count: int, expected_resource_names: list[str] = None):

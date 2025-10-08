@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: crossplane-composition-tester
+spec:
+  template:
+    metadata:
+      labels:
+        app: crossplane-composition-tester
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: crossplane-composition-tester
+          image: benmalekarim/crossplane-composition-tester:v0.0.1
+          args:
+            - "test/composition-tests"
+            - "-f"
+            - "allure_behave.formatter:AllureFormatter"
+            - "-o"
+            - "/app/allure-results"
+            - "-f"
+            - "pretty"
+          volumeMounts:
+            - name: test-volume
+              mountPath: /app/test
+            - name: allure-results-volume
+              mountPath: /app/allure-results
+
+      volumes:
+        - name: test-volume
+          hostPath:
+            path: /home/ubuntu/test   # Replace with the actual path on your host
+            type: Directory
+        - name: allure-results-volume
+          hostPath:
+            path: /home/ubuntu/allure-results  # Replace with actual path
+            type: DirectoryOrCreate

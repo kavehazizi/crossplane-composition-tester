@@ -203,6 +203,7 @@ def render(ctx: Context):
     #  - functions - default ones would be in xplane-pkg repo
     #  - context from the environment file - default ones would be in xplane-pkg repo
 
+    # TODO: Add timeout to render?
 
     # logger.info("rendering composition")
         
@@ -271,8 +272,9 @@ def check_resource_parameters_with_key_prefix(ctx, resource_name, key):
         if key:
             param_name = f"{key}.{param_name}"
 
-        assert_has_resource_entry(
-            resource_name, resource, param_name, value=param_value
+        # TODO: Have support for operators like {regex} or {contains}
+        assert_resource_has_entry(
+            resource_name, resource, param_name, expected=param_value
         )
 
 
@@ -331,8 +333,9 @@ def check_composite_status_parameters(ctx):
         param_name, param_value = row["param name"], row["param value"]
         param_name = f"status.{param_name}"
 
-        assert_has_resource_entry(
-            "composite", desired_xr, param_name, value=param_value
+        # TODO: Have support for operators like {regex} or {contains}
+        assert_resource_has_entry(
+            "composite", desired_xr, param_name, expected=param_value
         )
 
 
@@ -425,6 +428,7 @@ def render_wrong(ctx: Context):
 def log_desired_resources(ctx: Context):
     logger.info("desired resources")
     # log to stdout and attach to allure step
+    # TODO
 
 
 @step("fail here")

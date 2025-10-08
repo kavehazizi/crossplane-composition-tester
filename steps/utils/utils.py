@@ -1,11 +1,11 @@
 # Copyright 2023 Swisscom (Schweiz) AG
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,12 +24,11 @@ from benedict import benedict
 from hamcrest import assert_that, none, is_not
 
 from steps.utils.constants import (
-    DICT_BENEDICT_SEPARATOR,
-    TMP_OBSERVED_FILE_PATH,
-    OBSERVED,
-    ENVCONFIG,
-    CTX_DESIRED_RESOURCES,
-    CTX_DESIRED_COMPOSITE)
+        DICT_BENEDICT_SEPARATOR,
+        TMP_OBSERVED_FILE_PATH,
+        OBSERVED,
+        CTX_DESIRED_RESOURCES,
+        CTX_DESIRED_COMPOSITE)
 
 logger = logging.getLogger("xplane-composition-tester logger")
 logger.setLevel(logging.INFO)
@@ -45,6 +44,7 @@ def create_fake_status_conditions(ready=False, synced=True):
     Returns:
         list -- list of status conditions
     """
+    # TODO: Pay attention as to how different status affect the renderer
     ready_condition = {
         "lastTransitionTime": "2023-11-24T15:29:59Z",
         "reason": "Available" if ready else "Unavailable",
@@ -59,6 +59,19 @@ def create_fake_status_conditions(ready=False, synced=True):
         "type": "Synced",
     }
     return [ready_condition, synced_condition]
+
+
+def get_dump_path(ctx: Context, filename: str) -> str:
+    """
+    Return the file path for dumping content.
+    If ctx.execution_folder is set, use that; otherwise, fallback to 'dump' in the current working directory.
+    """
+    if hasattr(ctx, "execution_folder"):
+        dump_dir = Path(ctx.execution_folder)
+    else:
+        dump_dir = Path.cwd() / "dump"
+    dump_dir.mkdir(parents=True, exist_ok=True)
+    return str(dump_dir / filename)
 
 
 def prepare_render_args(ctx: Context, log_input: bool = False):
@@ -82,7 +95,7 @@ def prepare_render_args(ctx: Context, log_input: bool = False):
     # logger.info(f"uid is {uid}")
     
     if log_input:
-        dump_yaml_to_file(f"dump/{iteration_id}-in-xr.yaml", ctx.claim)
+        dump_yaml_to_file(get_dump_path(ctx, f"{iteration_id}-in-xr.yaml"), ctx.claim)
         
     observed_file = getattr(ctx, f"{OBSERVED}_filepath", None)
     observed_resources = getattr(ctx, CTX_DESIRED_RESOURCES, None)
@@ -111,20 +124,20 @@ def prepare_render_args(ctx: Context, log_input: bool = False):
         assert observed_resources is not None, f"No resources found in context"
 
         if log_input:
-            dump_yaml_to_file(f"dump/{iteration_id}-in-observed-from-previous-desired.yaml", observed_resources)
+            dump_yaml_to_file(get_dump_path(ctx, f"{iteration_id}-in-observed-from-previous-desired.yaml"), observed_resources)
 
         # Merge the observed with the updates accumulated so far
         updates = getattr(ctx, "updates", None)
         if updates:
             if log_input:
-                dump_yaml_to_file(f"dump/{iteration_id}-in-changes-from-steps.yaml", updates)
+                dump_yaml_to_file(get_dump_path(ctx, f"{iteration_id}-in-changes-from-steps.yaml"), updates)
 
             for resource in ctx.updates:
                 if resource in observed_resources:
                     deep_update(observed_resources[resource], ctx.updates[resource])
 
             if log_input:
-                dump_yaml_to_file(f"dump/{iteration_id}-in-observed.yaml", observed_resources)
+                dump_yaml_to_file(get_dump_path(ctx, f"{iteration_id}-in-observed.yaml"), observed_resources)
 
         # Then dump the observed onto a temp file
         # logger.info(f"running with observed resources {observed_resources}")
@@ -199,8 +212,8 @@ def get_resource_entry(resource, key: str, default=None):
     keypath = re.sub(r'(?<!\\)\.', DICT_BENEDICT_SEPARATOR, key)
     # Remove the escape character from the escaped dots if any
     keypath = keypath.replace(r'\.', '.')
-
     return resource.get(keypath, default)
+
 
 def save_rendered_output(ctx: Context, render_output: str):
     """Save the render output into a file
@@ -210,9 +223,9 @@ def save_rendered_output(ctx: Context, render_output: str):
         render_ouput {str} -- render output
     """
     iteration_id = get_iteration_id(ctx, new_iteration=False)
-    dump_string_to_file(f"dump/{iteration_id}-out-desired.yaml", render_output)    
-    
-    
+    dump_string_to_file(get_dump_path(ctx, f"{iteration_id}-out-desired.yaml"), render_output)
+
+
 def read_desired_output_into_context(ctx: Context, render_output: str):
     """Read the desired state from the render output and save it into context
 
@@ -230,22 +243,16 @@ def read_desired_output_into_context(ctx: Context, render_output: str):
             render_output, Loader=yaml.BaseLoader))
     except yaml.YAMLError as e:
         assert_that(False, f"error parsing render output: {e}")
-
-    assert_that(len(desired_state), is_not(
-        0), f"render: no desired state output")
-
+    assert_that(len(desired_state), is_not(0), f"render: no desired state output")
     # The first resource from the crossplane render output is always the xr
     desired_xr = desired_state[0]
-    setattr(ctx, CTX_DESIRED_COMPOSITE, benedict(
-        desired_xr, keypath_separator=DICT_BENEDICT_SEPARATOR))
-
+    setattr(ctx, CTX_DESIRED_COMPOSITE, benedict(desired_xr, keypath_separator=DICT_BENEDICT_SEPARATOR))
     desired_resources = desired_state[1:]
     # Create dict from resource names to their payload
     desired_resources = dict(
         [(dr["metadata"]["annotations"]["crossplane.io/composition-resource-name"],
           benedict(dr, keypath_separator=DICT_BENEDICT_SEPARATOR)) for dr in desired_resources]
     )
-
     setattr(ctx, CTX_DESIRED_RESOURCES, desired_resources)
 
 
@@ -261,12 +268,20 @@ def parse_value_cmd(value: str):
     value = value.strip()
     if value.startswith('\\'):
         value_split = value.split(' ', 1)
-        cmd, args = value_split[0], value_split[1]
-        if cmd == "\list":
-            value = args.split(',')
+        cmd = value_split[0].strip('\\')
+        
+        if cmd == "nil" or cmd == "null":
+            return None
+        
+        arg = value_split[1]
+        if cmd == 'list':
+            value = arg.split(',')
+        elif cmd == "bool":
+            value = arg == "True" or arg == "true"
+        elif cmd == "int":
+            value = int(arg)
         else:
             raise NotImplementedError(f"unknown command {cmd}")
-
     return value
 
 
@@ -312,6 +327,7 @@ def dump_yaml_to_file(filepath, content: str, dump_multiple_resources: bool = Fa
     except yaml.YAMLError as e:
         assert_that(False, f"error dumping to file: {e}")
 
+
 def dump_string_to_file(filepath, content: str):
     """
     Dump content to file. Creates file if not exists.
@@ -325,12 +341,12 @@ def dump_string_to_file(filepath, content: str):
     """
     filepath = Path(filepath)
     filepath.parent.mkdir(exist_ok=True, parents=True)
-    
     try:
         with open(filepath, mode="w+", encoding="utf-8") as file:
             file.write(content)
     except Exception as e:
         assert_that(False, f"error dumping to file: {e}")
+
 
 def get_iteration_id(ctx: Context, new_iteration: bool = True):
     """Get an iteration id from context.
@@ -348,4 +364,3 @@ def get_iteration_id(ctx: Context, new_iteration: bool = True):
     elif new_iteration:
         ctx.iteration_id = iteration_id + 1
     return ctx.iteration_id
-

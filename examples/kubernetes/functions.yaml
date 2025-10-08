@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-environment-configs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: function-environment-configs
+  template:
+    metadata:
+      labels:
+        app: function-environment-configs
+    spec:
+      containers:
+        - name: function-environment-configs
+          image: xpkg.upbound.io/crossplane-contrib/function-environment-configs:v0.1.0
+          args: ["--insecure", "--address=:9443"]
+          ports:
+            - containerPort: 9443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: function-environment-configs
+spec:
+  ports:
+  - port: 9443
+    protocol: TCP
+    targetPort: 9443
+    name: function-environment-configs
+  selector:
+    app: function-environment-configs
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-auto-ready
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: function-auto-ready
+  template:
+    metadata:
+      labels:
+        app: function-auto-ready
+    spec:
+      containers:
+        - name: function-auto-ready
+          image: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.3.0
+          args: ["--insecure", "--address=:9443"]
+          ports:
+            - containerPort: 9443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: function-auto-ready
+spec:
+  ports:
+  - port: 9443
+    protocol: TCP
+    targetPort: 9443
+    name: function-auto-ready
+  selector:
+    app: function-auto-ready
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-go-templating
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: function-go-templating
+  template:
+    metadata:
+      labels:
+        app: function-go-templating
+    spec:
+      containers:
+        - name: function-go-templating
+          image: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.7.0
+          args: ["--insecure", "--address=:9443"]
+          ports:
+            - containerPort: 9443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: function-go-templating
+spec:
+  ports:
+  - port: 9443
+    protocol: TCP
+    targetPort: 9443
+    name: function-go-templating
+  selector:
+    app: function-go-templating
+  type: ClusterIP
