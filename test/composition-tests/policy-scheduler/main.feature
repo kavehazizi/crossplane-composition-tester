@@ -18,16 +18,25 @@ Feature: Policy scheduler composition
 
   Background:
     Given input claim xr.yaml
-    # following step is optional: default input composition is composition.yaml 
     And input composition composition.yaml
-    # following step is optional: default input functions is functions.yaml
     And input functions functions.yaml
     Then check that no resources are provisioning
 
   @normal
-  Scenario: TODO
+  Scenario: this scenario doesn't make any output
 
     # render 1
     When crossplane renders the composition
     Then check that no resources are provisioning
-    # TODO follow the example from service-account.feature and write similar steps to test the policy scheduler composition
+
+  @normal
+  Scenario: active schedule creates a role
+
+    Given input claim xr-active.yaml
+    When crossplane renders the composition
+    Then check that 1 resource is provisioning and it is
+      | resource-name |
+      | role-0        |
+    And check that resource role-0 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-1  |
