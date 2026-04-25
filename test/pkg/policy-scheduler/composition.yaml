@@ -43,7 +43,7 @@ spec:
       inline:
         template: |-
           {{ $accountId := (index .context "apiextensions.crossplane.io/environment").accountId }}
-          {{ $now := now | dateInZone "2006-01-02T15:04:05Z" "UTC" }}
+          {{ $now := dateInZone "2006-01-02T15:04:05Z" now "UTC" }}
 
           {{ range $index, $schedule := .observed.composite.resource.spec.schedules }}
           {{ if and (le $schedule.scheduleFrom $now) (ge $schedule.scheduleUntil $now) }}
