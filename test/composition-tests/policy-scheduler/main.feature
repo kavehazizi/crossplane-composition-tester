@@ -51,5 +51,36 @@ Feature: Policy scheduler composition
       | param name     | param value |
       | spec.forProvider.roleName  | role-app-1  |
       | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy1 |
-      
+  @normal
+  Scenario: multiple active schedules create multiple roles and attachments
+    Given input claim xr-multiple-active.yaml
+    When crossplane renders the composition
+    Then check that 2 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | role-1            |
+    And check that resource role-0 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-1  |
+    And check that resource role-1 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-2  |
+
+    Given change observed resource role-0 with status READY
+    And change observed resource role-1 with status READY
+    When crossplane renders the composition
+    Then check that 4 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | role-1            |
+      | attachment-0      |
+      | attachment-1      |
+    And check that resource attachment-0 has parameters
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-1  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy1 |
+    And check that resource attachment-1 has parameters
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-2  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy2 |
 
