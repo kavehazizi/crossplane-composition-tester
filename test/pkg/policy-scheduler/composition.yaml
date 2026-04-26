@@ -42,17 +42,21 @@ spec:
       source: Inline
       inline:
         template: |-
+          {{ $root := . }}
           {{ $accountId := (index .context "apiextensions.crossplane.io/environment").accountId }}
           {{ $now := dateInZone "2006-01-02T15:04:05Z" now "UTC" }}
 
           {{ range $index, $schedule := .observed.composite.resource.spec.schedules }}
+          {{ $roleResourceName := printf "role-%d" $index }}
+          {{ $attachmentResourceName := printf "attachment-%d" $index }}
+
           {{ if and (le $schedule.scheduleFrom $now) (ge $schedule.scheduleUntil $now) }}
           ---
           apiVersion: iam.aws.crossplane.io/v1beta1
           kind: Role
           metadata:
             annotations:
-              gotemplating.fn.crossplane.io/composition-resource-name: role-{{ $index }}
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $roleResourceName }}
             name: {{ $schedule.roleName }}
           spec:
             forProvider:
@@ -71,12 +75,17 @@ spec:
                 }
             providerConfigRef:
               name: providerconfig-aws
+
+          {{ if $root.observed.resources }}
+          {{ $observedRole := index $root.observed.resources $roleResourceName }}
+          {{ if $observedRole }}
+          {{ if eq (getResourceCondition "Ready" $observedRole).Status "True" }}
           ---
           apiVersion: iam.aws.crossplane.io/v1beta1
           kind: RolePolicyAttachment
           metadata:
             annotations:
-              gotemplating.fn.crossplane.io/composition-resource-name: attachment-{{ $index }}
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $attachmentResourceName }}
             name: {{ $schedule.roleName }}-policy-attachment
           spec:
             forProvider:
@@ -84,6 +93,10 @@ spec:
               policyArn: {{ $schedule.policyArn }}
             providerConfigRef:
               name: providerconfig-aws
+          {{ end }}
+          {{ end }}
+          {{ end }}
+
           {{ end }}
           {{ end }}
   - step: automatically-detect-ready-composed-resources

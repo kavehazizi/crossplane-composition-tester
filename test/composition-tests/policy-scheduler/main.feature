@@ -30,18 +30,26 @@ Feature: Policy scheduler composition
     Then check that no resources are provisioning
 
   @normal
-  Scenario: active schedule creates a role
+  Scenario: active schedule creates a role and when it is ready an attachment is created
 
     Given input claim xr-active.yaml
     When crossplane renders the composition
-    Then check that 2 resource is provisioning and it is
+    Then check that 1 resource is provisioning and it is
       | resource-name |
       | role-0        |
-      | attachment-0  |
     And check that resource role-0 has parameters
       | param name     | param value |
       | metadata.name  | role-app-1  |
+
+    Given change observed resource role-0 with status READY
+    When crossplane renders the composition
+    Then check that 2 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | attachment-0      |
     And check that resource attachment-0 has parameters
-      | param name                 | param value                         |
-      | spec.forProvider.roleName  | role-app-1                          |
-      | spec.forProvider.policyArn | arn:aws:iam::aws:policy/AmazonPolicy1 |
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-1  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy1 |
+      
+
