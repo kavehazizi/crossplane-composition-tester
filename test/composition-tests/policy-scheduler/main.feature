@@ -34,9 +34,14 @@ Feature: Policy scheduler composition
 
     Given input claim xr-active.yaml
     When crossplane renders the composition
-    Then check that 1 resource is provisioning and it is
+    Then check that 2 resource is provisioning and it is
       | resource-name |
       | role-0        |
+      | attachment-0  |
     And check that resource role-0 has parameters
       | param name     | param value |
       | metadata.name  | role-app-1  |
+    And check that resource attachment-0 has parameters
+      | param name                 | param value                         |
+      | spec.forProvider.roleName  | role-app-1                          |
+      | spec.forProvider.policyArn | arn:aws:iam::aws:policy/AmazonPolicy1 |

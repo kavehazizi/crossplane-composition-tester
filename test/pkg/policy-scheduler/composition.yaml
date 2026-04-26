@@ -71,6 +71,19 @@ spec:
                 }
             providerConfigRef:
               name: providerconfig-aws
+          ---
+          apiVersion: iam.aws.crossplane.io/v1beta1
+          kind: RolePolicyAttachment
+          metadata:
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: attachment-{{ $index }}
+            name: {{ $schedule.roleName }}-policy-attachment
+          spec:
+            forProvider:
+              roleName: {{ $schedule.roleName }}
+              policyArn: {{ $schedule.policyArn }}
+            providerConfigRef:
+              name: providerconfig-aws
           {{ end }}
           {{ end }}
   - step: automatically-detect-ready-composed-resources
