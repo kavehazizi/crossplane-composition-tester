@@ -83,4 +83,71 @@ Feature: Policy scheduler composition
       | param name     | param value |
       | spec.forProvider.roleName  | role-app-2  |
       | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy2 |
+  @normal
+  Scenario: multiple and mixed active schedules create multiple roles and attachments
+    Given input claim xr-mixed.yaml
+    When crossplane renders the composition
+    Then check that 2 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | role-2            |
+    And check that resource role-0 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-1  |
+    And check that resource role-2 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-3  |
 
+    Given change observed resource role-0 with status READY
+    And change observed resource role-2 with status READY
+    When crossplane renders the composition
+    Then check that 4 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | role-2            |
+      | attachment-0      |
+      | attachment-2      |
+    And check that resource attachment-0 has parameters
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-1  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy1 |
+    And check that resource attachment-2 has parameters
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-3  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy3 |
+  @normal
+  Scenario: resources are deleted when schedule is not active anymore
+    Given input claim xr-mixed.yaml
+    When crossplane renders the composition
+    Then check that 2 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | role-2            |
+    And check that resource role-0 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-1  |
+    And check that resource role-2 has parameters
+      | param name     | param value |
+      | metadata.name  | role-app-3  |
+
+    Given change observed resource role-0 with status READY
+    And change observed resource role-2 with status READY
+    When crossplane renders the composition
+    Then check that 4 resources are provisioning and they are
+      | resource-name     |
+      | role-0            |
+      | role-2            |
+      | attachment-0      |
+      | attachment-2      |
+    And check that resource attachment-0 has parameters
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-1  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy1 |
+    And check that resource attachment-2 has parameters
+      | param name     | param value |
+      | spec.forProvider.roleName  | role-app-3  |
+      | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy3 |
+
+    Given input claim xr.yaml
+    When crossplane renders the composition
+    Then check that no resources are provisioning
