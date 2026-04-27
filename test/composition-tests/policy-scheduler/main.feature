@@ -23,7 +23,7 @@ Feature: Policy scheduler composition
     Then check that no resources are provisioning
 
   @normal
-  Scenario: this scenario doesn't make any output
+  Scenario: inactive schedules doesn't make any output
 
     # render 1
     When crossplane renders the composition
@@ -84,7 +84,7 @@ Feature: Policy scheduler composition
       | spec.forProvider.roleName  | role-app-2  |
       | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy2 |
   @normal
-  Scenario: multiple and mixed active schedules create multiple roles and attachments
+  Scenario: mixed active schedules create multiple roles and attachments
     Given input claim xr-mixed.yaml
     When crossplane renders the composition
     Then check that 2 resources are provisioning and they are
@@ -116,7 +116,7 @@ Feature: Policy scheduler composition
       | spec.forProvider.roleName  | role-app-3  |
       | spec.forProvider.policyArn  | arn:aws:iam::aws:policy/AmazonPolicy3 |
   @normal
-  Scenario: resources are deleted when schedule is not active anymore
+  Scenario: resources are no longer desired when schedule is not active anymore
     Given input claim xr-mixed.yaml
     When crossplane renders the composition
     Then check that 2 resources are provisioning and they are
